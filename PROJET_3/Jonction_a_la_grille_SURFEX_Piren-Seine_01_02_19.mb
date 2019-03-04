@@ -1,0 +1,1184 @@
+'-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+'																																																
+'																Préparation des fichiers SURFEX                                                                                                  
+'                                                            Vision intégrée des cheminements de l'eau                                                                                           
+'------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Include "Mapbasic.def"
+Include "Icons.def"
+
+Declare sub main
+
+Declare sub Connexion_grilleSURFEX_NœudsRéseau
+'Créer Tables des Exutoires (par l’utilisateur)
+Declare sub Calcules_BD_Carthage
+Declare sub Calcule_Reseau
+Declare sub Calcule_Versant
+Declare sub Donnees_R
+Declare sub Fichiers_SURFEX
+Declare sub quitter
+
+dim n, nTime, Id_fen as integer
+
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+'																		Menu principal																												
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+sub main 
+Print chr$(12)
+	
+Create menu "Vison intégrée des cheminements de l'eau" as 
+	"1-Connexion grille SURFEX - Réseau artificiel" calling Connexion_grilleSURFEX_NœudsRéseau,
+	"2-Calcul écoulements en rivière" calling Calcules_BD_Carthage,
+	"3-Calcul écoulements en réseaux artificiels" calling Calcule_Reseau,
+	"4-Calcul écoulements en versant" calling Calcule_Versant,
+	"5-Ouverture de la table R" calling Donnees_R,
+	"6-Création des fichiers SURFEX" calling Fichiers_SURFEX,
+	"7-Quitter" calling quitter
+ 
+alter menu bar add "Vison intégrée des cheminements de l'eau" 
+
+end sub
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+'															1-Connexion grille SURFEX - Réseau artificiel																										
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+sub Connexion_grilleSURFEX_NœudsRéseau
+	Dim nb as Integer
+	
+	nTime = Timer()
+	close all
+	
+	'Ouverture des tables
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Ini Grille\Grille_PC.TAB" Interactive as GrilleSURFEXini
+	Commit Table GrilleSURFEXini As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\GrilleSURFEX.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\GrilleSURFEX.TAB" as GrilleSURFEX
+	Close table GrilleSURFEXini
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Ini Grille\Arcs_Zone_PC.TAB" Interactive as Arcs_Zoneini
+	Commit Table Arcs_Zoneini As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Arcs_Zone_PC.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Arcs_Zone_PC.TAB" as Arcs_Zone
+	Close table Arcs_Zoneini
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Ini Grille\Noeuds_Zone_PC.TAB" Interactive as Noeuds_Zoneini
+	Commit Table Noeuds_Zoneini As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_Zone_PC.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_Zone_PC.TAB" as Noeuds_Zone
+	Close table Noeuds_Zoneini
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Ini Grille\Arcs_EP_PC.TAB" Interactive as Arcs_EPini
+	Commit Table Arcs_EPini As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Arcs_EP_PC.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Arcs_EP_PC.TAB" as Arcs_EP
+	Close table Arcs_EPini
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Ini Grille\Noeuds_EP_PC.TAB" Interactive as Noeuds_EPini
+	Commit Table Noeuds_EPini As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_EP_PC.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_EP_PC.TAB" as Noeuds_EP
+	Close table Noeuds_EPini
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Ini Grille\BD_Carthage_PC.TAB" Interactive as BD_Carthageini
+	Commit Table BD_Carthageini As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\BD_Carthage_PC.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\BD_Carthage_PC.TAB" as BD_Carthage
+	Close table BD_Carthageini
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Ini Grille\Jonction_regard_Riviere.TAB" Interactive as Jonction_regard_Riviere_ini
+	Commit Table Jonction_regard_Riviere_ini As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Jonction_regard_Riviere.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Jonction_regard_Riviere" as Jonction_regard_Riviere
+	Close table Jonction_regard_Riviere_ini
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Ini Grille\Jonction_DO_Riviere.TAB" Interactive as Jonction_DO_Riviere_ini
+	Commit Table Jonction_DO_Riviere_ini As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Jonction_DO_Riviere.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Jonction_DO_Riviere" as Jonction_DO_Riviere
+	Close table Jonction_DO_Riviere_ini
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Ini Grille\Maillage.TAB" Interactive as Maillage_ini
+	Commit Table Maillage_ini As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Maillage.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Maillage" as Maillage
+	Close table Maillage_ini
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Ini Grille\Jonction_STEP_Riviere.TAB" Interactive as Jonction_STEP_Riviere_ini
+	Commit Table Jonction_STEP_Riviere_ini As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Jonction_STEP_Riviere.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Jonction_STEP_Riviere" as Jonction_STEP_Riviere
+	Close table Jonction_STEP_Riviere_ini
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Ini Grille\Exutoire.TAB" Interactive as Exutoireini
+	Commit Table Exutoireini As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Exutoire.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Exutoire.TAB" as Exutoire
+	Close table Exutoireini
+	
+	
+	'Préparation de la table Grille SURFEX
+	Alter Table "GrilleSURFEX" ( add ID_Maille Integer,X Float,Y Float,Urbain Logical,Unitaire Logical,Exu_EP Integer,Dist_Riviere_EP Float,Dist_Reseau_EP Float,Dist_Versant_EP Float)
+	Alter Table "GrilleSURFEX" ( add Exu_EU Integer,Dist_Riviere_EU Float,Dist_Reseau_EU Float,Dist_Versant_EU Float,Exu_Uni Integer,Dist_Riviere_Uni Float,Dist_Reseau_Uni Float,Dist_Versant_Uni Float,Exu_Versant Integer,Dist_Riviere_Versant Float,Dist_Reseau_Versant Float,Dist_Versant_Versant Float,Exu_Souterrain Integer,Dist_Riviere_Sout Float,Dist_Sout_Sout Float ) Interactive
+	Alter Table "GrilleSURFEX" ( drop Id_row ) Interactive
+	Update GrilleSURFEX Set ID_Maille = rowid
+	Set CoordSys Table GrilleSURFEX
+	Update GrilleSURFEX Set X = CentroidX(obj)
+	Update GrilleSURFEX Set Y = CentroidY(obj)
+	commit table GrilleSURFEX
+	select * from Noeuds_Zone where RESEAU="Unitaire" into Noeuduni
+	Add Column "GrilleSURFEX" (Unitaire )From Noeuduni Set To 1 Where within
+	Commit table GrilleSURFEX
+	Add Column "GrilleSURFEX" (Urbain )From Noeuds_EP Set To 1 Where within
+	select * from GrilleSURFEX where Urbain=1 And Unitaire=1 into Erreur
+	nb = Tableinfo(Erreur , TAB_INFO_NROWS)
+	If nb >0 then
+		Note "Erreur, certaines mailles sont drainées à la fois par l'unitaire et par l'eau pluviale ! "
+		Browse * From Erreur
+		End program
+	end if
+	Close table Erreur
+	Add Column "GrilleSURFEX" (Urbain )From Noeuds_Zone Set To 1 Where within
+	Close table Noeuduni
+	Commit table GrilleSURFEX
+	Commit Table GrilleSURFEX As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\GrilleSURFEXintermediaire.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\GrilleSURFEXintermediaire.TAB" as GrilleSURFEXint
+	Add Column "GrilleSURFEXint" (Exu_EP )From Noeuds_EP Set To ID_Regard Where within
+	select * from Noeuds_Zone where RESEAU<>"STEP" into Noeuduni
+	Add Column "GrilleSURFEXint" (Exu_Uni )From Noeuduni Set To ID_Regard Where within
+	Close table Noeuduni
+	'Add Column "GrilleSURFEXint" (Exu_EU )From Noeuds_EU Set To ID_Regard Where within
+	commit table GrilleSURFEXint
+	
+	
+	'Préparation table Arcs_Zone
+	Alter Table "Arcs_Zone" ( add Dist_Riv Float, Dist_Res Float, Id_Exu Integer)
+
+	'Préparation table Noeuds_Zone
+	Alter Table "Noeuds_Zone" ( modify NUMERO Integer add Id_Exu Integer, Dist_Riv float, Dist_Res float, Dist_vers float, Point_Exu Logical,Id_Exu_Autre Integer, Dist_Riv_Autre float, Dist_Res_Autre float, Dist_vers_Autre float ) Interactive
+	
+	'Préparation table Arcs_EP
+	Alter Table "Arcs_EP" ( add Arc_Aval Integer, Dist_Riv Float, Dist_Res Float, Id_Exu Integer)
+	
+	'Préparation table Noeuds_EP
+	Alter Table "Noeuds_EP" ( add Id_Exu Integer, Dist_Riv float, Dist_Res float, Dist_vers float, Point_Exu Logical ) Interactive
+	
+	'Préparation table Arcs_EU
+	'Alter Table "Arcs_EU" ( add Dist_Riv Float, Dist_Res Float, Id_Exu Integer)
+		
+	'Préparation table JonctionEPRiviere
+	Alter Table "Jonction_regard_Riviere" ( add Dist_Res Float,Dist_Riv Float, ID_Exu Integer ) Interactive
+	Alter Table "Jonction_regard_Riviere" ( modify Destination Integer ) Interactive
+	
+	'Préparation table JonctionDORiviere
+	Alter Table "Jonction_DO_Riviere" ( add Dist_Res Float,Dist_Riv Float, ID_Exu Integer ) Interactive
+	
+	'Préparation table Maillage
+	Alter Table "Maillage" ( add Dist_Res Float,Dist_Riv Float, ID_Exu Integer ) Interactive
+
+	'Préparation table JonctionSTEPRiviere
+	Alter Table "Jonction_STEP_Riviere" ( add Dist_Res Float,Dist_Riv Float, ID_Exu Integer ) Interactive
+	
+	'Préparation table Exutoire	
+	Alter Table "Exutoire" ( modify X Integer,Y Integer ) Interactive
+	Update Exutoire set Identifiant=rowid
+	Update Exutoire set Types="Initial"
+	Set CoordSys Table Exutoire
+	Update Exutoire Set X = CentroidX(obj)
+	Update Exutoire Set Y = CentroidY(obj)
+	commit table Exutoire
+
+end sub
+
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+'															2-Calcul écoulements en rivière																										
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+sub Calcules_BD_Carthage
+	
+	Dim nb, nb1, i, exu, av as Integer
+	Dim D, L, l1, X1, Y1 as float
+	Close all
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\BD_Carthage_PC.TAB" as BD_Carthage
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Exutoire.TAB" as Exutoire
+	
+print "Préparation de la BD_Carthage"
+'Ces étapes doivent être faites avant le calcul des tables Jonctions... autrement, réaliser cette préparation de la BD_Carthage puis recalculer les tables de Jonction!
+	'1- Supprimer manuellement les boucles et autres : le réseau doit être uniquement arborescent
+	'2- Découper les polylignes du réseau Carthage en autant de lignes qui le compose : utiliser l'outil MapCad dédié
+	'3- Utiliser le programme pour calculer les distances à l'exutoire (attention aux modifications des colonnes si le programme tourne plusieurs fois)
+
+Dim Fait as logical
+Fait=1
+if Fait=0 then
+	set coordsys table BD_Carthage
+	Update BD_Carthage Set Distances = CartesianObjectLen(obj, "m")
+	Update BD_Carthage Set Xini= Objectgeography(obj,OBJ_GEO_LINEBEGX)
+	Update BD_Carthage Set Yini= Objectgeography(obj,OBJ_GEO_LINEBEGY)
+	Update BD_Carthage Set Xfin= Objectgeography(obj,OBJ_GEO_LINEENDX)
+	Update BD_Carthage Set Yfin= Objectgeography(obj,OBJ_GEO_LINEENDY)
+	Commit Table BD_Carthage 
+	pack table BD_Carthage Graphic Data
+	Fetch First From BD_Carthage
+	Do while not EOT(BD_Carthage)
+		i=BD_Carthage.ID_Arc
+		X1=BD_Carthage.Xini
+		Y1=BD_Carthage.Yini
+		Select * from BD_Carthage where Xfin=X1 And Yfin=Y1 into TronconAmont
+		Update TronconAmont set ArcAval= i	
+		Fetch Next From BD_Carthage
+	Loop
+	Commit table BD_Carthage
+End Program
+print "Calcul des exutoires du réseau naturel"
+	Select * from BD_Carthage where ArcAval=0 into ExutoireCarthage
+	nb=Tableinfo(ExutoireCarthage, TAB_INFO_NROWS)
+	Fetch First From BD_Carthage
+	Do while not EOT(BD_Carthage)
+		i=BD_Carthage.ID_Arc
+		L=BD_Carthage.Distances
+		av=BD_Carthage.ArcAval
+		Do while av <>0
+			Select * from BD_Carthage where ID_Arc=av into TronconAval
+			l1=TronconAval.Distances
+			L=L+l1
+			av=TronconAval.ArcAval
+		Loop
+		Select * from BD_Carthage where BD_Carthage.ID_Arc=i into TronconCalcule
+		Update TronconCalcule set Distance_Exutoire= L	
+		Fetch Next From BD_Carthage
+	Loop
+	Commit table BD_Carthage
+	Commit Table BD_Carthage As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Ini Grille\BD_Carthage_PC.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+
+end if
+
+	'Connexion des exutoires et de la BD Carthage
+	Update BD_Carthage Set Id_Exu = 0
+	Update BD_Carthage Set Exutoire = 0
+	Select * from BD_Carthage, Exutoire where BD_Carthage.Xfin=Exutoire.X And BD_Carthage.Yfin=Exutoire.Y into AMettreAJour
+	nb= Tableinfo(AMettreAJour , TAB_INFO_NROWS)
+	Update AMettreAJour set Id_Exu=Identifiant
+	Update AMettreAJour set Exutoire=1
+	commit table BD_Carthage
+	Print "Tronçons exutoires mis à jour"
+
+	'Calcul de l'exutoire de chaque tronçon BD_Carthage
+	Select * from BD_Carthage where Exutoire= 1 into TronconExutoire
+	Fetch first from TronconExutoire
+	Do while not EOT (TronconExutoire)
+		i=TronconExutoire.ID_Arc
+		exu=TronconExutoire.Id_Exu
+		If exu=0 then
+			print "l'exutoire n'est pas renseigné"
+			end program
+		end if
+		D=TronconExutoire.Distance_Exutoire
+		L=TronconExutoire.Distances
+		D=D-L
+		nb=1
+		'print "On traite l'exutoire " & i
+		'print "D=" & D
+		'print "nb=" & nb
+		Create Table "Amont" (Identifiant_Arc Integer) file "D:\mosset\Desktop\Temporaire\Amont.TAB" TYPE NATIVE Charset "WindowsLatin1"
+		Insert Into Amont (COL1) Values ( i )
+		Commit table Amont
+		Do
+			nb1=nb
+			'print "nb1=" & nb1
+			Select ID_Arc from BD_Carthage, Amont where BD_Carthage.ArcAval= Amont.Identifiant_Arc And BD_Carthage.Exutoire=0 into NouveauAmont
+			Select * from NouveauAmont where ID_Arc not in (Select Identifiant_Arc from Amont) into AAjouter
+			Insert Into Amont ( COL1) Select COL1 From AAjouter
+			commit table Amont
+			Close table NouveauAmont
+			Close Table AAjouter
+			nb=Tableinfo(Amont , TAB_INFO_NROWS)
+			'print "nb=" & nb
+		Loop until nb=nb1
+		Select * from BD_Carthage, Amont where BD_Carthage.ID_Arc= Amont.Identifiant_Arc into AmettreAJour
+
+		Update AMettreAJour set Distance_Exutoire=Distance_Exutoire-D
+		Update AMettreAJour set ID_Exu=exu
+		Commit table BD_Carthage
+		Drop table Amont
+	Fetch next from TronconExutoire
+	Loop
+
+end sub
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+'															3-Calcul écoulements en réseaux artificiels																								
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+sub Calcule_Reseau
+
+	Dim i, av, fin, nb, idav, exu  as Integer
+	Dim d,Distex,dres, driv, test as float
+	Dim testEp, testUnitaire, testEU as Logical
+	
+	testEP=0
+	testUnitaire=0
+
+	nTime = Timer()
+	Close all
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Ini Grille\Grille_PC.TAB" as Grille_PC
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Arcs_Zone_PC.TAB" as Arcs_Zone
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_Zone_PC.TAB" as Noeuds_Zone
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Arcs_EP_PC.TAB" as Arcs_EP
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_EP_PC.TAB" as Noeuds_EP
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\BD_Carthage_PC.TAB" as BD_Carthage
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Jonction_regard_Riviere" as Jonction_regard_Riviere
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Jonction_DO_Riviere" as Jonction_DO_Riviere
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Maillage" as Maillage
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Jonction_STEP_Riviere" as Jonction_STEP_Riviere
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Exutoire.TAB" as Exutoire
+	'print "Ouverture table ok"
+	
+' traitment de l'EP
+'___________________
+If testEP=0 then
+	
+	'Connexion des exutoires et des noeuds EP
+	Update Noeuds_EP Set Dist_Riv = -999
+	Update Noeuds_EP Set Dist_Res = -999
+	Update Noeuds_EP Set Id_Exu = 0
+	Update Noeuds_EP Set Point_Exu = 0
+	
+	Select Nom, Id_Regard, obj, Origine from Noeuds_EP, Maillage where Maillage.Origine_EP=True and Noeuds_EP.Id_Regard=Maillage.Origine Into NoeudsDO
+	Update NoeudsDO set Id_Regard=Id_Regard+80000
+	Update NoeudsDO set Origine=Origine+80000
+	Insert Into Exutoire ( Identifiant, Nom, obj) Select Id_Regard,COL1,obj From NoeudsDO
+	Update NoeudsDO set Id_Regard=Id_Regard-80000
+	Select * from Exutoire where Identifiant>80000 into AMettreAJour
+	Update AMettreAJour set types="MAILLAGE"
+	Commit table Exutoire
+
+	Select * from Noeuds_EP, Exutoire where Noeuds_EP.obj Intersects Exutoire.obj into AMettreAJour
+	Update AMettreAJour set Id_Exu=Identifiant
+	Update AMettreAJour set Point_Exu=1
+	Update AMettreAJour Set Dist_Riv = 0 		'Distance parcourue en rivière, soit de l'arc-Destination(Jonction-regard-rivière)à l'exutoire choisi dans la table Exutoire
+	Update AMettreAJour Set Dist_Res = 0		'Distance du regard EP à l'arc-Destination de la BD_Carthage(Jonction-Regard-rivière)
+	commit table Noeuds_EP
+
+	'print "Connexion aux exutoires OK"
+	
+	'Connexion des Jonction EP Ruisseau aux ruisseaux
+	Update Jonction_regard_Riviere Set Distance_Résultat = CartesianObjectLen(obj, "m")
+	Update Jonction_regard_Riviere set Dist_Res=Distance_Résultat
+	Add Column "Jonction_regard_Riviere" (Dist_Riv )From BD_Carthage Set To Distance_Exutoire Where Destination = ID_Arc 
+	Add Column "Jonction_regard_Riviere" (ID_Exu )From BD_Carthage Set To ID_Exu Where Destination = ID_Arc 
+	Select * from Exutoire, BD_Carthage where Exutoire.obj Intersects BD_Carthage.obj into ExutoireRivier
+	Commit Table ExutoireRivier as "D:\mosset\Desktop\Temporaire\ExutoireRivier.tab" TYPE NATIVE Charset "WindowsLatin1"
+	Close table ExutoireRivier
+	Open Table "D:\mosset\Desktop\Temporaire\ExutoireRivier.tab" as ExutoireRivier
+	Select * from Jonction_regard_Riviere, ExutoireRivier where Jonction_regard_Riviere.Obj Intersects ExutoireRivier.Obj into JonctionDirecte
+	Update JonctionDirecte set Dist_Riv=0
+	commit table Jonction_regard_Riviere
+	Close table JonctionDirecte
+
+	Drop Table ExutoireRivier
+
+	Select * from Noeuds_EP where Id_Exu=0 into AMettreAJour
+	Add Column "AMettreAJour" (Dist_Riv )From Jonction_regard_Riviere Set To Dist_Riv Where COL2 = COL1 
+	Add Column "AMettreAJour" (Dist_Res )From Jonction_regard_Riviere Set To Dist_Res Where COL2 = COL1 
+
+
+
+
+	Add Column "AMettreAJour" (Id_Exu )From Jonction_regard_Riviere Set To Id_Exu Where COL2 = COL1 
+	Commit table Noeuds_EP
+	print "Jonction aux ruisseaux ok"
+
+	select * from Noeuds_EP where Exutoire=0 And Point_Exu=0 into AMettreAJour
+	Update AMettreAJour set Dist_Riv = -999
+	Update AMettreAJour set Dist_Res = -999
+	commit table Noeuds_EP	
+
+	'Calcul des tronçons avals arcs 1
+	Update Arcs_EP Set Longueur = CartesianObjectLen(obj, "m")
+	Update Arcs_EP Set Dist_Riv = -999
+	Update Arcs_EP Set Dist_Res = -999
+	commit table Arcs_EP 
+	
+	Fetch First From Arcs_EP
+	Do while not EOT(Arcs_EP)
+		i= Arcs_EP.Id_Arc
+		fin=Arcs_EP.Point_fin
+		Select * from Arcs_EP where Point_ini=fin into ArcAval
+		nb= Tableinfo(ArcAval , TAB_INFO_NROWS)
+		if nb >1 then
+			print "Erreur ! l'arc " & i & " a " & nb & " arcs aval !"
+			End program
+		elseif nb=1 then				'1 arc aval
+			idav=ArcAval.Id_Arc
+		elseif nb=0 then				'pas d'arc aval
+			idav=0
+		end if
+		Select * from Arcs_EP where Id_Arc=i into ArcEnCours
+		Update ArcEnCours set Arc_Aval=idav
+	Fetch Next From Arcs_EP
+	Loop	
+	commit table Arcs_EP
+	print "fin calcul troncon aval"
+	
+	commit table Arcs_EP
+	Pack table Arcs_EP Graphic Data
+	Add Column "Arcs_EP" (Dist_Riv )From Noeuds_EP Set To Dist_Riv Where COL3 = COL1 
+	Add Column "Arcs_EP" (Dist_Res )From Noeuds_EP Set To Dist_Res Where COL3 = COL1 
+	Add Column "Arcs_EP" (Id_Exu)From Noeuds_EP Set To Id_Exu Where COL3 = COL1 
+	select * from Arcs_EP where Dist_Res<>-999 into AMettreAJour
+	Update AMettreAJour Set Dist_Res = Dist_Res+Longueur
+	commit table Arcs_EP
+	
+'end program
+
+	'Calcul des distances à l'exutoire
+	Fetch First From Arcs_EP
+	Do while not EOT(Arcs_EP)
+		i= Arcs_EP.Id_Arc
+		av= Arcs_EP.Arc_Aval
+		dres= Arcs_EP.Longueur
+		test=Arcs_EP.Dist_Res
+		'print "On traite l'arc " & i & ", il a pour arc aval " & av & ", et pour longueur " & dres
+		'print "test=" & test
+		If test=-999 then
+			select * from Arcs_EP where Id_Arc=av into Taval
+			av= Taval.Arc_Aval
+			'print "Le nouvel arc aval est " & av
+			if av=0 then
+				dres=dres+Taval.Dist_Res
+				driv=Taval.Dist_Riv
+				exu=Taval.Id_Exu
+				'print "1 Distance exutoire =" & dres
+			end if
+			While av<>0
+				Distex=Taval.Dist_Res
+				'print "Distex =" & Distex
+				if Distex=-999 then
+					dres=dres+Taval.Longueur
+					select * from Arcs_EP where Id_Arc=av into Taval
+					av= Taval.Arc_Aval
+					'print "av=" & av
+					if av=0 then
+						dres=dres+Taval.Dist_Res
+						driv=Taval.Dist_Riv
+						exu=Taval.Id_Exu
+						'print "2 Distance exutoire =" & dres
+					end if
+				end if
+				if Distex<>-999 then
+					dres=dres+Distex
+					driv=Taval.Dist_Riv
+					exu=Taval.Id_Exu
+					av=0
+					'print "3 Distance exutoire =" & dres
+				end if
+			wend
+		select Id_Arc,Dist_Res, Dist_Riv, Id_Exu from Arcs_EP where Id_Arc=i into Encours
+		Update Encours Set Dist_Res = dres
+		Update Encours Set Dist_Riv = driv	
+		Update Encours Set Id_Exu = exu	
+		end if
+		Fetch Next From Arcs_EP
+	Loop
+	commit table Arcs_EP
+	commit table Noeuds_EP
+	pack table Noeuds_EP Graphic Data
+
+	print "Prise en compte des maillages"
+	Select * from Maillage where Maillage.Deversement_vers_EP=True into EP
+	Update EP Set Distance_Résultat = CartesianObjectLen(obj, "m")
+	Add Column "EP" (Dist_Res )From Arcs_EP Set To Dist_Res Where Destination = ID_Arc 
+	Add Column "EP" (Dist_Riv )From Arcs_EP Set To Dist_Riv Where Destination = ID_Arc 
+	Add Column "EP" (ID_Exu )From Arcs_EP Set To ID_Exu Where Destination = ID_Arc 
+	Update EP Set Dist_Res=Dist_Res+Distance_Résultat
+	print "Maillage vers EP ok"
+	commit table Maillage
+		
+	Select * from Noeuds_EP where Dist_Res=-999 into AMettreAJour
+	Add Column "AMettreAJour" (Dist_Riv )From Arcs_EP Set To Dist_Riv Where ID_Regard = Point_ini
+	Add Column "AMettreAJour" (Dist_Res )From Arcs_EP Set To Dist_Res Where ID_Regard = Point_ini
+	Add Column "AMettreAJour" (Id_Exu )From Arcs_EP Set To Id_Exu Where ID_Regard = Point_ini
+	commit table Noeuds_EP
+	pack table Noeuds_EP Graphic Data
+
+	Select * from Grille_PC where ID not in (Select ID from Grille_PC, Noeuds_EP where Noeuds_EP.obj within Grille_PC.obj) into mailles_sans_noeudsEP
+	Commit Table mailles_sans_noeudsEP As "D:\mosset\Desktop\Temporaire\Mailles_sans_noeudsEP.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Close Table Mailles_sans_noeudsEP Interactive
+	Open Table "D:\mosset\Desktop\Temporaire\Mailles_sans_noeudsEP.TAB" Interactive
+	Select * from Arcs_EP, Mailles_sans_noeudsEP where Arcs_EP.obj intersects Mailles_sans_noeudsEP.obj into arcs_sans_noeudsEP
+	Commit Table arcs_sans_noeudsEP As "D:\mosset\Desktop\Temporaire\arcs_sans_noeudsEP.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Close Table arcs_sans_noeudsEP Interactive
+	Open Table "D:\mosset\Desktop\Temporaire\arcs_sans_noeudsEP.TAB" Interactive
+	Select * from arcs_sans_noeudsEP into arcs_sans_noeudsEP_selection
+	Map from arcs_sans_noeudsEP
+	Id_fen= FrontWindow()
+	Set Map Window Id_fen Layer 1 Editable On
+	Set Target On
+	Select * from Mailles_sans_NoeudsEP into Selection
+	Objects Split Into Target Data Id_Arc=Id_Arc, Id_Exu=Id_Exu, Dist_riv=Dist_riv, Dist_Res=Dist_Res
+	Select * from arcs_sans_noeudsEP, mailles_sans_noeudsEP where arcs_sans_noeudsEP.obj within mailles_sans_noeudsEP.obj into arcsEP_à_compléter
+	Commit Table arcsEP_à_compléter As "D:\mosset\Desktop\Temporaire\arcsEP_à_compléter.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Close Table arcsEP_à_compléter Interactive
+	Drop table arcs_sans_noeudsEP
+	Drop Table mailles_sans_noeudsEP
+	Open Table "D:\mosset\Desktop\Temporaire\arcsEP_à_compléter.TAB" Interactive
+	Set CoordSys Table arcsEP_à_compléter
+	Alter table arcsEP_à_compléter (add X float, Y float)
+	Update arcsEP_à_compléter set y=centroidY(obj)
+	Update arcsEP_à_compléter set x=centroidx(obj)
+	Commit Table arcsEP_à_compléter As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_EP_supplémentaires.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Drop Table arcsEP_à_compléter 
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_EP_supplémentaires.TAB" Interactive
+end if
+	print "le calcul de l'EP a pris " + str$(Timer() - nTime) + " secondes."
+
+' traitment de l'Unitaire
+'___________________
+If testUnitaire=0 then
+
+	Update Noeuds_Zone Set Dist_Riv = -999
+	Update Noeuds_Zone Set Dist_Res = -999
+	Update Noeuds_Zone Set Id_Exu = 0
+	Update Noeuds_Zone Set Dist_Riv_Autre = -999
+	Update Noeuds_Zone Set Dist_Res_Autre = -999
+	Update Noeuds_Zone Set Id_Exu_Autre = 0
+	Update Noeuds_Zone Set Point_Exu = 0
+	commit table Noeuds_Zone
+
+	Select Nom, Id_Regard, obj, Origine from Noeuds_Zone, Maillage where Origine_EP=False and Noeuds_Zone.Id_Regard=Maillage.Origine Into NoeudsDO
+	Update NoeudsDO set Id_Regard=Id_Regard+80000
+	Update NoeudsDO set Origine=Origine+80000
+	Insert Into Exutoire ( Identifiant, Nom, obj) Select Id_Regard,COL1,obj From NoeudsDO
+	Update NoeudsDO set Id_Regard=Id_Regard-80000
+	Select * from Exutoire where Identifiant>80000 into AMettreAJour
+	Update AMettreAJour set types="MAILLAGE"
+	Commit table Exutoire
+
+	'Prise compte des Do
+	Update Jonction_DO_Riviere Set Distance_Résultat = CartesianObjectLen(obj, "m")
+	Update Jonction_DO_Riviere set Dist_Res=Distance_Résultat
+	Select * from Jonction_DO_Riviere where EP=False into Milieu_naturel
+	Add Column "Milieu_naturel" (Dist_Riv )From BD_Carthage Set To Distance_Exutoire Where Destination = ID_Arc
+	Add Column "Milieu_naturel" (ID_Exu )From BD_Carthage Set To ID_Exu Where Destination = ID_Arc 
+	
+	Select * from Jonction_DO_Riviere where EP=True into Réseau_EP
+	Add Column "Réseau_EP" (Dist_Res )From Arcs_EP Set To Dist_Res Where Destination = ID_Arc 
+	Add Column "Réseau_EP" (Dist_Riv )From Arcs_EP Set To Dist_Riv Where Destination = ID_Arc 
+	Add Column "Réseau_EP" (ID_Exu )From Arcs_EP Set To ID_Exu Where Destination = ID_Arc
+
+	commit table Jonction_DO_Riviere
+
+	Select * from Exutoire, BD_Carthage where Exutoire.obj Intersects BD_Carthage.obj into ExutoireRivier
+	Commit Table ExutoireRivier as "D:\mosset\Desktop\Temporaire\ExutoireRivier.tab" TYPE NATIVE Charset "WindowsLatin1"
+	Close table ExutoireRivier
+	Open Table "D:\mosset\Desktop\Temporaire\ExutoireRivier.tab" as ExutoireRivier
+	Select * from Jonction_DO_Riviere, ExutoireRivier where Jonction_DO_Riviere.Obj Intersects ExutoireRivier.Obj into JonctionDirecte
+	Update JonctionDirecte set Dist_Riv=0
+	commit table Jonction_DO_Riviere
+	Close table JonctionDirecte
+	Drop Table ExutoireRivier
+
+	Select Nom, Id_Regard, obj from Noeuds_Zone, Jonction_DO_Riviere where Noeuds_Zone.Id_Regard=Jonction_DO_Riviere.Origine Into NoeudsDO
+	Update NoeudsDO set Id_Regard=Id_Regard+90000
+	Insert Into Exutoire ( Identifiant, Nom, obj) Select Id_Regard,COL1,obj From NoeudsDO
+	Update NoeudsDO set Id_Regard=Id_Regard-90000
+	Select * from Exutoire where Identifiant>90000 into AMettreAJour
+	Update AMettreAJour set types="DO"
+	Commit table Exutoire
+	Select * from Noeuds_Zone, Jonction_DO_Riviere where Noeuds_Zone.Id_Regard=Jonction_DO_Riviere.Origine Into NoeudsDO
+	Add Column "NoeudsDO" (Dist_Riv_Autre )From Jonction_DO_Riviere Set To Dist_Riv Where ID_Regard = Origine
+	Add Column "NoeudsDO" (Dist_Res_Autre )From Jonction_DO_Riviere Set To Dist_Res Where ID_Regard = Origine
+	Add Column "NoeudsDO" (Id_Exu_Autre )From Jonction_DO_Riviere Set To Id_Exu Where ID_Regard = Origine
+	commit table Noeuds_Zone
+	print "Jonction aux DO ok"
+
+	'Prise compte des STEP
+	Update Jonction_STEP_Riviere Set Distance_Résultat = CartesianObjectLen(obj, "m")
+	Update Jonction_STEP_Riviere set Dist_Res=Distance_Résultat
+	Add Column "Jonction_STEP_Riviere" (Dist_Riv )From BD_Carthage Set To Distance_Exutoire Where Destination = ID_Arc 
+	Add Column "Jonction_STEP_Riviere" (ID_Exu )From BD_Carthage Set To ID_Exu Where Destination = ID_Arc 
+	Select * from Exutoire, BD_Carthage where Exutoire.obj Intersects BD_Carthage.obj into ExutoireRivier
+	Commit Table ExutoireRivier as "D:\mosset\Desktop\Temporaire\ExutoireRivier.tab" TYPE NATIVE Charset "WindowsLatin1"
+	Close table ExutoireRivier
+	Open Table "D:\mosset\Desktop\Temporaire\ExutoireRivier.tab" as ExutoireRivier
+	Select * from Jonction_STEP_Riviere, ExutoireRivier where Jonction_STEP_Riviere.Obj Intersects ExutoireRivier.Obj into JonctionDirecte
+	Update JonctionDirecte set Dist_Riv=0
+	Update JonctionDirecte set Id_Exu=identifiant
+	commit table Jonction_STEP_Riviere
+	Close table JonctionDirecte
+	Drop Table ExutoireRivier
+	Select * from Noeuds_Zone, Jonction_STEP_Riviere where Noeuds_Zone.STEP_PC_ID=Jonction_STEP_Riviere.Origine And RESEAU="STEP" Into NoeudsSTEP
+	Add Column "NoeudsSTEP" (Dist_Riv )From Jonction_STEP_Riviere Set To Dist_Riv Where STEP_PC_ID = Origine
+	Add Column "NoeudsSTEP" (Dist_Res )From Jonction_STEP_Riviere Set To Dist_Res Where STEP_PC_ID = Origine
+	Add Column "NoeudsSTEP" (Id_Exu )From Jonction_STEP_Riviere Set To Id_Exu Where STEP_PC_ID = Origine
+	commit table Noeuds_Zone
+	print "Jonction aux STEP ok"
+	
+	'Connexion des exutoires et des noeuds Unitaire
+	Select * from Noeuds_Zone, Exutoire where Noeuds_Zone.obj Intersects Exutoire.obj into AMettreAJour
+	Update AMettreAJour set Id_Exu=Identifiant
+	Update AMettreAJour set Dist_Res=0
+	Update AMettreAJour set Dist_Riv=0
+	Update AMettreAJour set Point_Exu=1
+	commit table Noeuds_Zone
+	
+	'Mise à jour de la table Arc
+	Update Arcs_Zone Set Longueur = CartesianObjectLen(obj, "m")
+	Add Column "Arcs_Zone" (Dist_Riv )From Noeuds_Zone Set To Dist_Riv Where COL3 = COL1 
+	Add Column "Arcs_Zone" (Dist_Res )From Noeuds_Zone Set To Dist_Res Where COL3 = COL1 
+	Add Column "Arcs_Zone" (Id_Exu)From Noeuds_Zone Set To Id_Exu Where COL3 = COL1 
+	select * from Arcs_Zone where Dist_Res<>-999 into AMettreAJour
+	Update AMettreAJour Set Dist_Res = Dist_Res+Longueur
+	commit table Arcs_Zone
+	
+	'Calcul des distances à l'exutoire
+	Fetch First From Arcs_Zone
+	Do while not EOT(Arcs_Zone)
+		i= Arcs_Zone.Id_Arc
+		av= Arcs_Zone.Arc_Aval
+		dres= Arcs_Zone.Longueur
+		test=Arcs_Zone.Dist_Res
+		'print "On traite l'arc " & i & ", il a pour arc aval " & av & ", et pour longueur " & dres
+
+		'print "test=" & test
+		If test=-999 then
+			select * from Arcs_Zone where Id_Arc=av into Taval
+			av= Taval.Arc_Aval
+			'print "Le nouvel arc aval est " & av
+			if av=0 then
+				dres=dres+Taval.Dist_Res
+				driv=Taval.Dist_Riv
+				exu=Taval.Id_Exu
+				'print "1 Distance exutoire =" & dres
+			end if
+			While av<>0
+				Distex=Taval.Dist_Res
+				'print "Distex =" & Distex
+				if Distex=-999 then
+					dres=dres+Taval.Longueur
+					select * from Arcs_Zone where Id_Arc=av into Taval
+					av= Taval.Arc_Aval
+					'print "av=" & av
+					if av=0 then
+						dres=dres+Taval.Dist_Res
+						driv=Taval.Dist_Riv
+						exu=Taval.Id_Exu
+						'print "2 Distance exutoire =" & dres
+					end if
+				end if
+				if Distex<>-999 then
+					dres=dres+Distex
+					driv=Taval.Dist_Riv
+					exu=Taval.Id_Exu
+					av=0
+					'print "3 Distance exutoire =" & dres
+				end if
+			wend
+		select Id_Arc,Dist_Res, Dist_Riv, Id_Exu from Arcs_Zone where Id_Arc=i into Encours
+		Update Encours Set Dist_Res = dres
+		Update Encours Set Dist_Riv = driv	
+		Update Encours Set Id_Exu = exu	
+		end if
+		Fetch Next From Arcs_Zone
+	Loop
+	commit table Arcs_Zone
+	
+	commit table Noeuds_Zone
+	pack table Noeuds_Zone Graphic Data
+	
+	Select * from Noeuds_Zone where Dist_Res=-999 into AMettreAJour
+	Add Column "AMettreAJour" (Dist_Riv )From Arcs_Zone Set To Dist_Riv Where ID_Regard = Point_ini
+	Add Column "AMettreAJour" (Dist_Res )From Arcs_Zone Set To Dist_Res Where ID_Regard = Point_ini
+	Add Column "AMettreAJour" (Id_Exu )From Arcs_Zone Set To Id_Exu Where ID_Regard = Point_ini
+	commit table Noeuds_Zone
+
+print "Prise en compte des maillages"
+	Select * from Maillage where Maillage.Deversement_vers_EP=False into Usees
+	Update Usees Set Distance_Résultat = CartesianObjectLen(obj, "m")
+	Add Column "Usees" (Dist_Res )From Arcs_Zone Set To Dist_Res Where Destination = ID_Arc 
+	Add Column "Usees" (Dist_Riv )From Arcs_Zone Set To Dist_Riv Where Destination = ID_Arc 
+	Add Column "Usees" (ID_Exu )From Arcs_Zone Set To ID_Exu Where Destination = ID_Arc 
+	Update Usees Set Dist_Res=Dist_Res+Distance_Résultat
+	print "Maillage vers unitaire ok"
+	commit table Maillage
+	
+	Select * from Grille_PC where ID not in (Select ID from Grille_PC, Noeuds_Zone where Noeuds_Zone.obj within Grille_PC.obj) into mailles_sans_noeudsU
+	Commit Table mailles_sans_noeudsU As "D:\mosset\Desktop\Temporaire\Mailles_sans_noeudsU.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Close Table Mailles_sans_noeudsU Interactive
+	Open Table "D:\mosset\Desktop\Temporaire\Mailles_sans_noeudsU.TAB" Interactive
+	Select * from Arcs_Zone, Mailles_sans_noeudsU where Arcs_Zone.obj intersects Mailles_sans_noeudsU.obj into arcs_sans_noeudsU
+	Commit Table arcs_sans_noeudsU As "D:\mosset\Desktop\Temporaire\arcs_sans_noeudsU.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Close Table arcs_sans_noeudsU Interactive
+	Close Table Arcs_Zone Interactive
+	Open Table "D:\mosset\Desktop\Temporaire\arcs_sans_noeudsU.TAB" Interactive
+	Select * from arcs_sans_noeudsU into arcs_sans_noeudsU_selection
+	Map from arcs_sans_noeudsU
+	Id_fen= FrontWindow()
+	Set Map Window Id_fen Layer 1 Editable On
+	Set Target On
+	select * from Mailles_sans_NoeudsU into Selection
+	Objects Split Into Target Data Id_Arc=Id_Arc, Id_Exu=Id_Exu, Dist_riv=Dist_riv, Dist_Res=Dist_Res, EU=EU, Unitaire=Unitaire
+	Select * from arcs_sans_noeudsU, mailles_sans_noeudsU where arcs_sans_noeudsU.obj within mailles_sans_noeudsU.obj into arcsU_à_compléter
+	Commit Table arcsU_à_compléter As "D:\mosset\Desktop\Temporaire\arcsU_à_compléter.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Close Table arcsU_à_compléter Interactive
+	Drop table arcs_sans_noeudsU
+	Drop table mailles_sans_noeudsU
+	Open Table "D:\mosset\Desktop\Temporaire\arcsU_à_compléter.TAB" Interactive
+	Set CoordSys Table arcsU_à_compléter	
+	Alter table arcsU_à_compléter (add X float, Y float)
+	Update arcsU_à_compléter set y=centroidY(obj)
+	Update arcsU_à_compléter set x=centroidx(obj)
+	Commit Table arcsU_à_compléter As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_U_supplémentaires.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Drop Table arcsU_à_compléter 
+	
+end if 	
+	print "le calcul de l'écoulement en réseau artificiel a pris " + str$(Timer() - nTime) + " secondes."
+
+	Select * from Noeuds_Zone where RESEAU="Unitaire" Or RESEAU="STEP" into Noeuds_Unitaires
+	Select * from Noeuds_Zone where RESEAU="EU" Or RESEAU="STEP" into Noeuds_EU
+	Commit Table Noeuds_Unitaires As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_Unitaires_PC.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Commit Table Noeuds_EU As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_EU_PC.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+
+	Close all interactive
+
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_EP_supplémentaires.TAB" Interactive 
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_U_supplémentaires.TAB" Interactive
+	
+	Set CoordSys Table Noeuds_EP_supplémentaires
+	UPDATE Noeuds_EP_supplémentaires Set Obj = CreatePoint(X, Y)
+	UPDATE Noeuds_U_supplémentaires Set Obj = CreatePoint(X, Y)
+	print "Créer les points des tables Noeuds_U_supplémentaires et Noeuds_EP_supplémentaires en cochant la case ''Remplacer les points existants''"
+	
+end sub
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+'															4-Calcul écoulements en versant																										
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+sub Calcule_Versant
+	Dim i, lav, cav, IdExu, nb , ncols, nrows, xllcorner, yllcorner, cellsize, nodata_value, X1, Y1, X2, Y2,col,lin as Integer
+	Dim DistExu1, DistAval, Dexuriv, Dexures as Float
+	Dim dejafait as Logical
+	
+	dejafait=1
+	nTime = Timer()
+	
+	Close all
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Table ini\Grille_MNT_PC.TAB" Interactive as MNT_2005_20m
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\BD_Carthage_PC.TAB" Interactive as BD_Carthage
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Ini Grille\Grille_PC.TAB" Interactive as Grilleini
+	Commit Table Grilleini As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Versant\Grille.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Versant\Grille.TAB" as Grille
+	Close table Grilleini
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\GrilleSURFEX.TAB" as GrilleSURFEX
+	
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_EP_supplémentaires.TAB" Interactive 
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_U_supplémentaires.TAB" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_EP_PC.TAB" Interactive AS Noeuds_EP
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_EU_PC.TAB" Interactive as Noeuds_EU
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_Unitaires_PC.TAB" Interactive as Noeuds_Unitaires
+
+	Select * from GrilleSURFEX, Noeuds_U_supplémentaires where GrilleSURFEX.Obj Contains Noeuds_U_supplémentaires.Obj and Noeuds_U_supplémentaires.EU=True into AMettreAJour
+	Update AMettreAJour set Exu_EU = Id_Exu
+	Update AMettreAJour set Dist_Riviere_EU=Dist_Riv
+	Update AMettreAJour set Dist_Reseau_EU=Dist_Res
+	Commit table GrilleSURFEX
+	Select * from GrilleSURFEX, Noeuds_EU where GrilleSURFEX.Obj Contains Noeuds_EU.Obj And Noeuds_EU.Osc_PC_ID<>0 into AMettreAJour
+	Update AMettreAJour set Exu_EU = Id_Exu
+	Update AMettreAJour set Dist_Riviere_EU=Dist_Riv
+	Update AMettreAJour set Dist_Reseau_EU=Dist_Res
+	Update AMettreAJour set Dist_Versant_EU=Dist_Vers
+	Commit table GrilleSURFEX
+
+	Select * from GrilleSURFEX, Noeuds_U_supplémentaires where GrilleSURFEX.Obj Contains Noeuds_U_supplémentaires.Obj and Noeuds_U_supplémentaires.Unitaire=True into AMettreAJour
+	Update AMettreAJour set Exu_Uni = Id_Exu
+	Update AMettreAJour set Dist_Riviere_Uni=Dist_Riv
+	Update AMettreAJour set Dist_Reseau_Uni=Dist_Res
+	Commit table GrilleSURFEX
+	Select * from GrilleSURFEX, Noeuds_Unitaires where GrilleSURFEX.Obj Contains Noeuds_Unitaires.Obj And Noeuds_Unitaires.Osc_PC_ID<>0 into AMettreAJour
+	Update AMettreAJour set Exu_Uni = Id_Exu
+	Update AMettreAJour set Dist_Riviere_Uni=Dist_Riv
+	Update AMettreAJour set Dist_Reseau_Uni=Dist_Res
+	Update AMettreAJour set Dist_Versant_Uni=Dist_Vers
+	Commit table GrilleSURFEX
+
+	Select * from GrilleSURFEX, Noeuds_EP_supplémentaires where GrilleSURFEX.Obj Contains Noeuds_EP_supplémentaires.Obj into AMettreAJour
+	Update AMettreAJour set Exu_EP = Id_Exu
+	Update AMettreAJour set Dist_Riviere_EP=Dist_Riv
+	Update AMettreAJour set Dist_Reseau_EP=Dist_Res
+	Commit table GrilleSURFEX
+
+	Select * from GrilleSURFEX, Noeuds_EP where GrilleSURFEX.Obj Contains Noeuds_EP.Obj And Noeuds_EP.Osc_PC_ID<>0 into AMettreAJour
+	Update AMettreAJour set Exu_EP = Id_Exu
+	Update AMettreAJour set Dist_Riviere_EP=Dist_Riv
+	Update AMettreAJour set Dist_Reseau_EP=Dist_Res
+	Update AMettreAJour set Dist_Versant_EP=Dist_Vers
+	Commit table GrilleSURFEX
+	Print "Complétion de la table grille Surfex ok, t= " + str$(Timer() - nTime)
+	
+	'Export Alti
+	Alter Table "Grille" ( add Alti Float ) Interactive
+	Commit Table Grille Interactive
+	Add Column "Grille" (Alti )From Mnt_2005_20m Set To avg(Alti) Where within
+	Select * from Grille, BD_Carthage where Grille.Obj Intersects BD_Carthage.Obj group by Grille.Id into Adescendre
+	Select * from Grille, BD_Carthage where Grille.Obj Intersects BD_Carthage.Obj into Test
+	Add Column "Test" (Alti )From Adescendre Set To Alti-5 Where COL9 = COL9 
+	Commit Table Grille Interactive
+	
+	'Export N° exu et Distances
+	Alter Table "Grille" ( add Exu Integer,Distance_Reseau Float,Distance_Riviere Float ) Interactive
+	select * from GrilleSURFEX where Exu_EP<>0 into EP
+	Add Column "Grille" (Exu )From EP Set To Exu_EP Where contains
+	Add Column "Grille" (Distance_Reseau )From EP Set To Dist_Reseau_EP Where contains
+	Add Column "Grille" (Distance_Riviere )From EP Set To Dist_Riviere_EP Where contains
+	select * from Grille where Exu=0 into ACompleter
+	select * from GrilleSURFEX where Exu_Uni<>0 into Uni
+	Add Column "ACompleter" (Exu )From Uni Set To Exu_Uni Where contains
+	Add Column "ACompleter" (Distance_Reseau )From Uni Set To Dist_Reseau_Uni Where contains
+	Add Column "ACompleter" (Distance_Riviere )From Uni Set To Dist_Riviere_Uni Where contains
+	Commit Table Grille Interactive
+	
+	Commit Table BD_Carthage As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\BD_CarthageDecoupee.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\BD_CarthageDecoupee.TAB" Interactive
+	select * from BD_CarthageDecoupee into Selection
+	Set Target On
+	select * from GrilleSURFEX into Selection
+	Objects Split Into Target Data Code_Hydro=Code_Hydro,Toponyme=Toponyme,Candidat=Candidat,Xini=Xini,Yini=Yini,Xfin=Xfin,Yfin=Yfin,Distances=Distances,ID_Arc=ID_Arc,ArcAval=ArcAval,Distance_Exutoire=Distance_Exutoire,Id_Exu=Id_Exu,Exutoire=Exutoire
+	Commit table BD_CarthageDecoupee
+	select * from Grille where Exu=0 into ACompleter
+	Add Column "ACompleter" (Distance_Riviere )From BD_CarthageDecoupee Set To Min(Distance_Exutoire) Where within
+	Select * from Grille, BD_CarthageDecoupee where Grille.obj Contains BD_CarthageDecoupee.obj And Grille.Distance_Riviere=BD_CarthageDecoupee.Distance_Exutoire into ACompleter
+	Update ACompleter set Exu=ID_Exu
+	Commit Table Grille Interactive
+	Drop table BD_CarthageDecoupee
+
+	Select Alti from Grille order by id_row, id_col into PourExport
+	Export "PourExport" Into "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Versant\GrilleAlti.txt" Type "ASCII" Overwrite CharSet "WindowsLatin1"
+	Select Exu from Grille order by id_row, id_col into PourExport
+	Export "PourExport" Into "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Versant\Exu.txt" Type "ASCII" Overwrite CharSet "WindowsLatin1"
+	Select Distance_Reseau from Grille order by id_row, id_col into PourExport
+	Export "PourExport" Into "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Versant\DistRes.txt" Type "ASCII" Overwrite CharSet "WindowsLatin1"
+	Select Distance_Riviere from Grille order by id_row, id_col into PourExport
+	Export "PourExport" Into "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Versant\DistRiv.txt" Type "ASCII" Overwrite CharSet "WindowsLatin1"
+
+	nb= Tableinfo(Grille , TAB_INFO_NROWS)
+	Select MAX(Id_row) from Grille into test
+	nrows=test.COL1
+	ncols=nb/nrows
+	Alter Table "Grille" ( add X Integer,Y Integer ) Interactive
+	Set CoordSys Table Grille
+	Update Grille Set X = CentroidX(obj)
+	Update Grille Set Y = CentroidY(obj)
+	Commit table Grille
+	Fetch first from Grille
+		col=Grille.Id_col
+		lin=Grille.Id_row
+		X1=centroidx(Grille.obj)
+		Y1=centroidy(Grille.obj)
+		print "Maille" &" " & col & " " & lin &" " & X1 &" " & Y1
+	Select * from Grille where Id_col=col+1 and Id_row=lin into MailleSuivante
+		X2=centroidx(MailleSuivante.obj)
+		Y2=centroidy(MailleSuivante.obj)
+		print "Maille suivante" &" " & col+1 &" " & lin &" " & X2 &" " & Y2
+	cellsize=Distance(X1,Y1,X2,Y2,"m")
+	Select MIN(X) from Grille into test
+	xllcorner=test.COL1-(cellsize/2)
+	Select MIN(Y) from Grille into test
+	yllcorner=test.COL1-(cellsize/2)
+
+	nodata_value=-9999
+
+	Print "la table GrilleAlti.txt à été exportée dans le dossier Résultat\Versant"
+	Print "vous devez maintenant effectuer les étapes suivantes : "
+	Print "   1 - Ouvrir les 4 tables txt crée sous Nodpad++ et ajouter l'entête suivante (sans le contenu des parenthèses) : "
+	Print "				ncols " & ncols & " (=> Nombre de colonnes de la grille)"
+	Print "				nrows " & nrows & " (=> Nombre de lignes de la grille) "
+	Print "				xllcorner " & xllcorner & " (=> Xmin)"
+	Print "				yllcorner " & yllcorner & " (=> Ymin)"
+	Print "				cellsize " & cellsize & " (=> Résolution du maillage)"
+	Print "				nodata_value " & nodata_value & " (=> Valeur pour l'absence de données)"
+	Print "			Puis, enregistrer les table en .asc (modifier l'extention du fichier), ouvrer les sous OrbisGis et réenregistrer les pour avoir le format matrice"
+	Print "    2 - Ouvrir la table GrilleAlti.asc sous OrbisGis"
+	Print "				Effectuer les opérations suivantes dans la fenêtre SQL : "
+	Print "				create table FILLED as select ST_FillSinks(raster, 0.001) as raster from GrilleAlti;"
+	Print "				create table Dir as select ST_D8Direction(raster) as raster from FILLED;"
+	Print "				Enregistrer la table Dir en .asc puis grace à Nodepad en .txt sans en tête"
+	Print "    3 - Utiliser le code R"
+	Print " 			Le code nécéssite en entrée : Alti, Dir, Exu, DistRiv et DistRes"
+
+	
+	
+	print "La préparation pour R a pris " + str$(Timer() - nTime) + " secondes."
+end sub
+
+
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+'															5-Ouverture de la table R																									
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+sub Donnees_R
+	close all
+	Register Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Versant\GrilleModele.txt"  TYPE ASCII Delimiter 32 Charset "WindowsLatin1" Into "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Versant\Grille.TAB"
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Versant\Grille.TAB" as Grille
+	Commit Table Grille As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Versant\Grille200m.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Versant\Grille200m.TAB" Interactive
+	'Drop Table Grille
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Arc\Arcs_Zone_PC.TAB" as Arcs_Zone
+	Create Map For Grille200m Using Arcs_Zone 
+	Close table Arcs_Zone
+	Alter Table "Grille200m" ( rename _COL1 Id_Maille,_COL2 X,_COL3 Y,_COL4 Ligne,_COL5 Colonne,_COL6 Alti_Surf,_COL7 Exu_Surf,_COL8 Dist_Res_Surf,_COL9 Dist_Riv_Surf,_COL10 Dist_Hill_Surf,_COL11 Dir modify Id_Maille Integer,Y Float ) Interactive
+	print "Créer les point pour la table Grille200m (Table/Créer points)"
+
+end sub
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+'															6-Création des fichiers SURFEX																										
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+sub Fichiers_SURFEX
+
+	Dim i, nb, av as Integer
+
+	Dim Driv, Dres as Float
+	Dim test as logical
+	Dim Exu, Exu2, au, av1, au1, d as Integer
+	Dim Ds, Dr as float
+
+	'Ouverture des tables
+	Close all
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Exutoire.TAB" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\GrilleSURFEX.TAB" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Arcs_EP_PC.TAB" Interactive as Arcs_EP
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Arcs_Zone_PC.TAB" Interactive as Arcs_Zone
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_EU_PC.TAB" Interactive as Noeuds_EU
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_EP_PC.TAB" Interactive as Noeuds_EP
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Noeuds_Unitaires_PC.TAB" Interactive as Noeuds_Unitaires
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\BD_Carthage_PC.TAB" Interactive as BD_Carthage
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Jonction_DO_Riviere.TAB" Interactive 
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Maillage" as Maillage
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Versant\Grille200m.TAB" Interactive 
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Jonction_regard_riviere.TAB" Interactive 
+	'print "Ouverture des tables"
+	
+	'Mise à jour de la grille SURFEX
+	Add Column "GrilleSURFEX" (Exu_Versant )From Grille200m Set To Exu_Surf Where within
+	Add Column "GrilleSURFEX" (Dist_Riviere_Versant )From Grille200m Set To Dist_Riv_Surf Where within
+	Add Column "GrilleSURFEX" (Dist_Reseau_Versant )From Grille200m Set To Dist_Res_Surf Where within
+	Add Column "GrilleSURFEX" (Dist_Versant_Versant )From Grille200m Set To Dist_Hill_Surf Where within
+	print "Mise à jour SURFEX"
+	
+	'Création du tableau des exutoires
+	Commit Table Exutoire As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Table_Exutoire.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+	Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Table_Exutoire.TAB" Interactive
+	Alter Table "Table_Exutoire" ( add Exu_Aval Integer,Dist_Riv_Aval Float,Dist_Res_Aval Float,Dist_Vers_Aval Float,Debit_Max Float,Exu_Autres Integer,Dist_Riv_Autre Float,Dist_Res_Autre Float,Dist_Vers_Autre Float ) Interactive
+	Create Index On Table_Exutoire (Identifiant)
+	drop index Table_Exutoire (Types)
+	print "Création table exutoire"
+
+	print "Exutoire sur EP"
+	Select * from Table_Exutoire,Noeuds_EP where Noeuds_EP.obj Intersects Table_Exutoire.obj into ExutoireEP
+	nb= Tableinfo(ExutoireEP , TAB_INFO_NROWS)
+	Fetch first from ExutoireEP
+	Do while not EOT (ExutoireEP)
+		i=ExutoireEP.ID_Regard
+		n=ExutoireEP.Numero
+		Select * from Arcs_EP where Point_ini=i into ArcsAval
+		nb= Tableinfo(ArcsAval , TAB_INFO_NROWS)
+		if (nb>0) then
+			av=ArcsAval.Id_Exu
+			Driv=ArcsAval.Dist_Riv
+			Dres=ArcsAval.Dist_Res
+			Select * from ExutoireEP where ID_Regard=i into AMettreAJour
+			Update AMettreAJour set Exu_Aval=av
+			Update AMettreAJour set Dist_Riv_Aval=Driv
+			Update AMettreAJour set Dist_Res_Aval=Dres
+		else
+			Select * from Jonction_regard_riviere where Origine=n into Jonctionriv
+			av=Jonctionriv.Id_Exu
+			Driv=Jonctionriv.Dist_Riv
+			Dres=Jonctionriv.Dist_Res
+			Select * from ExutoireEP where ID_Regard=i into AMettreAJour
+			Update AMettreAJour set Exu_Aval=av
+			Update AMettreAJour set Dist_Riv_Aval=Driv
+			Update AMettreAJour set Dist_Res_Aval=Dres
+		end if
+	Fetch next from ExutoireEP
+	Loop
+
+	Commit table Table_Exutoire
+
+	print "Exutoire Rivière"
+	Select * from Table_Exutoire,BD_Carthage where Table_Exutoire.X=BD_Carthage.Xini And Table_Exutoire.Y=BD_Carthage.Yini into ExutoireRiviere
+	nb= Tableinfo(ExutoireRiviere , TAB_INFO_NROWS)
+	Update ExutoireRiviere set Exu_Aval=Id_Exu
+	Update ExutoireRiviere set Dist_Riv_Aval=Distance_exutoire
+	Update ExutoireRiviere set Dist_Res_Aval=0
+	Commit table Table_Exutoire
+
+	print "Exutoire Unitaire"
+	Select * from Table_Exutoire,Noeuds_Unitaires where Noeuds_Unitaires.obj Intersects Table_Exutoire.obj into ExutoireUni
+	nb= Tableinfo(ExutoireUni , TAB_INFO_NROWS)
+	Fetch first from ExutoireUni
+	Do while not EOT (ExutoireUni)
+		i=ExutoireUni.ID_Regard
+		Select * from Arcs_Zone where Point_ini=i into ArcsAval
+		av=ArcsAval.Id_Exu
+		Driv=ArcsAval.Dist_Riv
+		Dres=ArcsAval.Dist_Res
+		Select * from ExutoireUni where ID_Regard=i into AMettreAJour
+		Update AMettreAJour set Exu_Aval=av
+		Update AMettreAJour set Dist_Riv_Aval=Driv
+		Update AMettreAJour set Dist_Res_Aval=Dres
+	Fetch next from ExutoireUni
+	Loop
+	Commit table Table_Exutoire
+
+	Select * from Table_Exutoire,Noeuds_EU where Noeuds_EU.obj Intersects Table_Exutoire.obj into ExutoireEU
+	nb= Tableinfo(ExutoireEU , TAB_INFO_NROWS)
+	Fetch first from ExutoireEU
+	Do while not EOT (ExutoireEU)
+		i=ExutoireEU.ID_Regard
+		Select * from Arcs_Zone where Point_ini=i into ArcsAval
+		av=ArcsAval.Id_Exu
+		Driv=ArcsAval.Dist_Riv
+		Dres=ArcsAval.Dist_Res
+		Select * from ExutoireEU where ID_Regard=i into AMettreAJour
+		Update AMettreAJour set Exu_Aval=av
+		Update AMettreAJour set Dist_Riv_Aval=Driv
+		Update AMettreAJour set Dist_Res_Aval=Dres
+	Fetch next from ExutoireEU
+	Loop
+	Commit table Table_Exutoire
+
+	'Calcul des DO
+	Add Column "Table_Exutoire" (Exu_Autres )From Jonction_DO_Riviere Set To ID_Exu Where intersects
+	Add Column "Table_Exutoire" (Dist_Riv_Autre )From Jonction_DO_Riviere Set To Dist_Riv Where intersects
+	Add Column "Table_Exutoire" (Dist_Res_Autre )From Jonction_DO_Riviere Set To Dist_Res Where intersects
+	Commit table Table_Exutoire
+
+	Select * from Table_Exutoire where Types="MAILLAGE" into Maillageàcompléter
+	Add Column "Maillageàcompléter" (Dist_Riv_Autre )From Maillage Set To Dist_Riv Where identifiant = Origine
+	Add Column "Maillageàcompléter" (Dist_Res_Autre )From Maillage Set To Dist_Res Where identifiant = Origine
+	Add Column "Maillageàcompléter" (Exu_Autres )From Maillage Set To Id_Exu Where identifiant = Origine
+
+	Commit table Table_Exutoire
+
+	print "Compléter manuellement les Débit Max des déversoirs d'orage"
+	Commit table GrilleSURFEX
+
+Close all
+Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Table_Exutoire.TAB" as Table_Exutoire_ini
+Commit Table Table_Exutoire_ini As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Table_Exutoire_fin.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\Table_Exutoire_fin.TAB" Interactive as Table_Exutoire
+Close table Table_Exutoire_ini
+Alter Table "Table_Exutoire" ( add rang Integer, Dist_Drain_Aval Float, Dist_Drain_Autre Float  ) Interactive
+	
+Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\GrilleSURFEX.TAB" Interactive
+Commit Table GrilleSURFEX As "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\GrilleFIN.TAB" TYPE NATIVE Charset "WindowsLatin1" Interactive
+Open Table "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\GrilleFIN.TAB" Interactive
+Alter Table "GrilleFIN" ( drop Urbain,Unitaire,Dist_Versant_Uni,Exu_Versant,Dist_Riviere_Versant,Dist_Reseau_Versant,Dist_Versant_Versant add Dist_Drain_EP Float,Dist_Drain_EU Float,Dist_Versant_Sout Float, Dist_Reseau_Sout Float order ID_Maille,X,Y,Exu_EP,Dist_Riviere_EP,Dist_Reseau_EP,Dist_Versant_EP,Dist_Drain_EP,Exu_EU,Dist_Riviere_EU,Dist_Reseau_EU,Dist_Versant_EU,Dist_Drain_EU,Exu_Souterrain,Dist_Riviere_Sout,Dist_Sout_Sout,Dist_Versant_Sout,Dist_Reseau_Sout) Interactive
+'print "Ouverture tables"
+
+'Complétion de la sortie EP des mailles
+select * from GrilleFIN where Exu_EP=0 into ACompleter
+select * from GrilleSURFEX where Exu_Uni<>0 into Uni
+Add Column "ACompleter" (Exu_EP )From Uni Set To Exu_Uni Where contains
+Add Column "ACompleter" (Dist_Reseau_EP )From Uni Set To Dist_Reseau_Uni Where contains
+Add Column "ACompleter" (Dist_Riviere_EP )From Uni Set To Dist_Riviere_Uni Where contains
+Commit Table GrilleFIN Interactive
+
+select * from GrilleSURFEX where Exu_Versant<>0 into Versant
+Add Column "ACompleter" (Exu_EP )From Versant Set To Exu_Versant Where contains
+Add Column "ACompleter" (Dist_Reseau_EP )From Versant Set To Dist_Reseau_Versant Where contains
+Add Column "ACompleter" (Dist_Riviere_EP )From Versant Set To Dist_Riviere_Versant Where contains
+Add Column "ACompleter" (Dist_Versant_EP )From Versant Set To Dist_Versant_Versant Where contains
+Commit Table GrilleFIN Interactive
+
+print "complétion sortie EP"
+
+'Complétion de la sortie EU des mailles
+select * from GrilleFIN where Exu_EU=0 into ACompleter
+select * from GrilleSURFEX where Exu_Uni<>0 into Uni
+Add Column "ACompleter" (Exu_EU )From Uni Set To Exu_Uni Where contains
+Add Column "ACompleter" (Dist_Reseau_EU )From Uni Set To Dist_Reseau_Uni Where contains
+Add Column "ACompleter" (Dist_Riviere_EU )From Uni Set To Dist_Riviere_Uni Where contains
+Commit Table GrilleFIN Interactive
+
+print "complétion sortie EU"
+
+'Ajout des Distances souterraines
+Update GrilleFIN Set Exu_Souterrain = Exu_EP
+Update GrilleFIN Set Dist_Riviere_Sout = Dist_Riviere_EP
+Update GrilleFIN Set Dist_Sout_Sout = Dist_Reseau_EP+Dist_Versant_EP
+commit table GrilleFIN
+print "complétion sortie sout"
+
+'Connexion uniquement aux rivières
+Fetch first from GrilleFIN
+		d=1
+	Do while not EOT (GrilleFIN)
+		print d
+		test=0
+		i=GrilleFIN.ID_Maille
+		Exu=GrilleFIN.Exu_Souterrain
+		Select * from GrilleFIN where ID_Maille=i into EnCours
+		Select * from Table_Exutoire where Identifiant=Exu into Exutoire
+		If (Exutoire.Dist_Res_Aval<>0 Or Exutoire.Dist_Vers_Aval<>0) then
+			test=1
+		end if
+		Do while test=1
+			Exu2=Exutoire.Exu_Autres
+			If Exu2<>0 then	'C'est un DO
+				Ds=EnCours.Dist_Sout_Sout+Exutoire.Dist_Res_Autre+Exutoire.Dist_Vers_Autre
+				Dr=Exutoire.Dist_Riv_Autre
+				Select * from GrilleFIN where ID_Maille=i into EnCours
+				Update EnCours Set Dist_Sout_Sout = Ds
+				Update EnCours Set Dist_Riviere_Sout = Dr
+				Update EnCours Set Exu_Souterrain = Exu2
+				Select * from Table_Exutoire where Identifiant=Exu2 into Exutoire
+				If (Exutoire.Dist_Res_Aval=0 And Exutoire.Dist_Vers_Aval=0) then
+					test=0
+				end if
+			Else
+				Exu2=Exutoire.Exu_Aval
+				If Exu2<>0 then	'Ce n'est pas un exutoire final
+					Ds=EnCours.Dist_Sout_Sout+Exutoire.Dist_Res_Aval+Exutoire.Dist_Vers_Aval
+					Dr=Exutoire.Dist_Riv_Aval
+					Select * from GrilleFIN where ID_Maille=i into EnCours
+					Update EnCours Set Dist_Sout_Sout = Ds
+					Update EnCours Set Dist_Riviere_Sout = Dr
+					Update EnCours Set Exu_Souterrain = Exu2
+					Select * from Table_Exutoire where Identifiant=Exu2 into Exutoire
+					If (Exutoire.Dist_Res_Aval=0 And Exutoire.Dist_Vers_Aval=0) then
+						test=0
+					end if
+				else
+					test=0
+				end if
+			End If
+			d=d+1
+		Loop			
+	Fetch next from GrilleFIN
+	Loop
+commit table GrilleFIN
+print "Connexion uniquement aux rivières"
+
+'Création des fichiers de sortie.
+	Update Table_Exutoire Set rang = rowid
+	Fetch first from Table_Exutoire
+	Do while not EOT (Table_Exutoire)
+		i=Table_Exutoire.rang
+		av=Table_Exutoire.Exu_Aval
+		au=Table_Exutoire.Exu_Autres
+		Select rang from Table_Exutoire where Identifiant=av into EnCours
+		av1=Encours.rang
+		Select rang from Table_Exutoire where Identifiant=au into EnCours
+		au1=Encours.rang
+		Select * from Table_Exutoire where rang=i into AMettreAJour
+		Update AMettreAJour Set Exu_Aval = av1
+		Update AMettreAJour Set Exu_Autres = au1
+	Fetch next from Table_Exutoire
+	Loop
+	commit table Table_Exutoire
+	
+	Add Column "GrilleFIN" (Exu_EP )From Table_Exutoire Set To rang Where COL4 = COL1 
+	Add Column "GrilleFIN" (Exu_EU )From Table_Exutoire Set To rang Where COL9 = COL1 
+	Add Column "GrilleFIN" (Exu_Souterrain )From Table_Exutoire Set To rang Where COL14 = COL1 
+	commit table GrilleFIN
+	print "Exutoires remplacés par numéro"
+	
+	Select Nom, Debit_Max, Exu_Aval, Dist_Vers_Aval, Dist_Riv_Aval, Dist_Res_Aval, Dist_Drain_Aval, Exu_Autres, Dist_Vers_Autre, Dist_Riv_Autre, Dist_Res_Autre, Dist_Drain_Autre from Table_Exutoire into PourExport
+	Export "PourExport" Into "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\XDATA_ROUT_BETWEEN_OUTLET.txt" Type "ASCII" Overwrite CharSet "WindowsLatin1"
+	Select Dist_Drain_EP, Dist_Drain_EU, Dist_Sout_Sout from GrilleFIN into PourExport
+	Export "PourExport" Into "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\XDATA_ROUT_DDRAIN.txt" Type "ASCII" Overwrite CharSet "WindowsLatin1"
+	Select Dist_Versant_EP, Dist_Versant_EU, Dist_Versant_Sout from GrilleFIN into PourExport
+	Export "PourExport" Into "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\XDATA_ROUT_DHILL.txt" Type "ASCII" Overwrite CharSet "WindowsLatin1"
+	Select Dist_Riviere_EP, Dist_Riviere_EU, Dist_Riviere_Sout from GrilleFIN into PourExport
+	Export "PourExport" Into "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\XDATA_ROUT_DRIVER.txt" Type "ASCII" Overwrite CharSet "WindowsLatin1"
+	Select Dist_Reseau_EP, Dist_Reseau_EU, Dist_Reseau_Sout from GrilleFIN into PourExport
+	Export "PourExport" Into "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\XDATA_ROUT_DSEWER.txt" Type "ASCII" Overwrite CharSet "WindowsLatin1"
+	Select Exu_EP, Exu_EU, Exu_Souterrain from GrilleFIN into PourExport
+	Export "PourExport" Into "D:\mosset\Desktop\PIREN_VDM_dep_02_2019\Resultat Grille\XDATA_ROUT_OUTLET.txt" Type "ASCII" Overwrite CharSet "WindowsLatin1"
+print "Création des fichiers de sortie"
+end sub
+
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+'																		5-Quitter																								
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+sub quitter
+
+End program
+
+end sub
+
